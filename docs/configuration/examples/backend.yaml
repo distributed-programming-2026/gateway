@@ -1,0 +1,41 @@
+kind: gateway/service/v1
+name: backend
+weight: 100
+routes:
+  - pattern: '^/legacy/users/[^/]+$'
+    internalRedirect:
+      old: '^/legacy/users/([^/]+)$'
+      new: '/backend/api/users/$1'
+      maxRedirectCount: 10
+
+  - pattern: '^/backend/api/users/[^/]+$'
+    rewrite:
+      old: '^/backend/(.*)$'
+      new: '/$1'
+    target: backend:8082
+    allowedMethods: [GET, POST]
+    interceptors:
+      - id: session
+      - id: authz
+        pathParametersPattern: '^/api/users/{user_id}$'
+        parameters:
+          action: users.read
+          apiKey: secret:authz:api_key
+      - id: error-pages
+        processingMode:
+          requestHeaders: false
+          responseHeaders: true
+    addHeaders:
+      X-User-ID:
+        pathParametersPattern: '^/api/users/{user_id}$'
+        value: 'user_id={user_id}'
+
+  - pattern: '^/backend/stream/.*$'
+    target: backend:8082
+    timeout: 0s
+    idleTimeout: 0s
+
+  - pattern: '^/backend\.Echo/.*$'
+    target: backend:8081
+    useHTTP2: true
+    timeout: 0s

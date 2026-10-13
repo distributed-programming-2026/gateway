@@ -1,0 +1,11 @@
+kind: gateway/v1
+weight: 100
+port: 8000
+healthzPort: 15000
+proxyTimeouts:
+  timeout: 60s
+  idleTimeout: 600s
+internalHeaders:
+  headers:
+    - X-Auth-Account
+    - X-Auth-User

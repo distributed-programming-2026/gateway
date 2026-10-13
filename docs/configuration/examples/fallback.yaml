@@ -1,0 +1,8 @@
+kind: gateway/service/v1
+name: fallback
+weight: -100
+routes:
+  - pattern: '^/.*$'
+    directResponse:
+      status: 404
+      inlineString: Not Found

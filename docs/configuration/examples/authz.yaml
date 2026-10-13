@@ -1,0 +1,6 @@
+kind: gateway/service/v1
+name: authz
+interceptor:
+  address: http://authz-interceptor:8082
+  transport: rest
+  timeout: 5s

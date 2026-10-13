@@ -1,0 +1,9 @@
+kind: gateway/service/v1
+name: backend
+routes:
+  - pattern: '^/gateway/status$'
+    directResponse:
+      status: 200
+      inlineString: 'gateway is running'
+  - pattern: '^/.*$'
+    target: '$(GATEWAY_UPSTREAM:-localhost:8080)'

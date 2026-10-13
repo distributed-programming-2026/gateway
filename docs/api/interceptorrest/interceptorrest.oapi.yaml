@@ -1,0 +1,383 @@
+openapi: 3.0.0
+info:
+  version: 1.1.0-draft
+  title: Gateway Interceptor API
+  description: Draft replaces the original authorization-only API. Unary processing
+    of configured request/response header, buffered body and trailer phases. No Envoy
+    dependency. See ../README.md for normative semantics.
+  x-api-identifier: Interceptor
+paths:
+  /gateway/api/v1/intercept:
+    post:
+      operationId: Intercept
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/interceptRequest'
+      responses:
+        '200':
+          description: Processing decision. Authorization denial is an immediateResponse,
+            not a transport error.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  payload:
+                    $ref: '#/components/schemas/interceptDecision'
+                required:
+                - payload
+components:
+  schemas:
+    header:
+      type: object
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+      - key
+      - value
+    headerValues:
+      type: object
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+          minItems: 1
+      required:
+      - key
+      - values
+    headerMutation:
+      type: object
+      additionalProperties: false
+      properties:
+        remove:
+          type: array
+          items:
+            type: string
+        set:
+          type: array
+          items:
+            $ref: '#/components/schemas/headerValues'
+        append:
+          type: array
+          items:
+            $ref: '#/components/schemas/headerValues'
+    httpRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        method:
+          type: string
+        scheme:
+          type: string
+        authority:
+          type: string
+        path:
+          type: string
+        rawQuery:
+          type: string
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/header'
+      required:
+      - method
+      - scheme
+      - authority
+      - path
+      - rawQuery
+      - headers
+    gatewayError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        interceptorId:
+          type: string
+      required:
+      - code
+    processingContext:
+      type: object
+      additionalProperties: false
+      properties:
+        requestId:
+          type: string
+        request:
+          $ref: '#/components/schemas/httpRequest'
+        pathParameters:
+          type: object
+          additionalProperties:
+            type: string
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+        gatewayError:
+          $ref: '#/components/schemas/gatewayError'
+      required:
+      - requestId
+      - request
+      - pathParameters
+      - parameters
+    httpRequestHeaders:
+      type: object
+      additionalProperties: false
+      properties:
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/header'
+        endOfStream:
+          type: boolean
+      required:
+      - headers
+      - endOfStream
+    httpResponseHeaders:
+      type: object
+      additionalProperties: false
+      properties:
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/header'
+        statusCode:
+          type: integer
+          minimum: 200
+          maximum: 599
+        endOfStream:
+          type: boolean
+      required:
+      - headers
+      - statusCode
+      - endOfStream
+    httpBody:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: string
+          format: byte
+          description: Base64-encoded arbitrary bytes; empty string represents an
+            empty body.
+        endOfStream:
+          type: boolean
+      required:
+      - data
+      - endOfStream
+    httpTrailers:
+      type: object
+      additionalProperties: false
+      properties:
+        trailers:
+          type: array
+          items:
+            $ref: '#/components/schemas/header'
+      required:
+      - trailers
+    bodyMutation:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: string
+          format: byte
+          description: Base64-encoded arbitrary bytes; empty string represents an
+            empty body.
+      required:
+      - data
+    requestMutation:
+      type: object
+      additionalProperties: false
+      properties:
+        method:
+          type: string
+        authority:
+          type: string
+        path:
+          type: string
+        rawQuery:
+          type: string
+    continueResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        responseType:
+          type: string
+          enum:
+          - continueResponse
+        headerMutation:
+          $ref: '#/components/schemas/headerMutation'
+        bodyMutation:
+          $ref: '#/components/schemas/bodyMutation'
+        trailerMutation:
+          $ref: '#/components/schemas/headerMutation'
+        requestMutation:
+          $ref: '#/components/schemas/requestMutation'
+        statusCode:
+          type: integer
+          minimum: 200
+          maximum: 599
+        responseHeaderMutation:
+          $ref: '#/components/schemas/headerMutation'
+      required:
+      - responseType
+    immediateResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        responseType:
+          type: string
+          enum:
+          - immediateResponse
+        statusCode:
+          type: integer
+          minimum: 200
+          maximum: 599
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/header'
+        body:
+          type: string
+          format: byte
+          description: Base64-encoded arbitrary bytes; empty string represents an
+            empty body.
+      required:
+      - responseType
+      - statusCode
+      - headers
+      - body
+    requestHeadersEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - requestHeaders
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpRequestHeaders'
+      required:
+      - eventType
+      - context
+      - event
+    responseHeadersEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - responseHeaders
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpResponseHeaders'
+      required:
+      - eventType
+      - context
+      - event
+    requestBodyEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - requestBody
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpBody'
+      required:
+      - eventType
+      - context
+      - event
+    responseBodyEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - responseBody
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpBody'
+      required:
+      - eventType
+      - context
+      - event
+    requestTrailersEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - requestTrailers
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpTrailers'
+      required:
+      - eventType
+      - context
+      - event
+    responseTrailersEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        eventType:
+          type: string
+          enum:
+          - responseTrailers
+        context:
+          $ref: '#/components/schemas/processingContext'
+        event:
+          $ref: '#/components/schemas/httpTrailers'
+      required:
+      - eventType
+      - context
+      - event
+    interceptRequest:
+      oneOf:
+      - $ref: '#/components/schemas/requestHeadersEvent'
+      - $ref: '#/components/schemas/responseHeadersEvent'
+      - $ref: '#/components/schemas/requestBodyEvent'
+      - $ref: '#/components/schemas/responseBodyEvent'
+      - $ref: '#/components/schemas/requestTrailersEvent'
+      - $ref: '#/components/schemas/responseTrailersEvent'
+      discriminator:
+        propertyName: eventType
+        mapping:
+          requestHeaders: '#/components/schemas/requestHeadersEvent'
+          responseHeaders: '#/components/schemas/responseHeadersEvent'
+          requestBody: '#/components/schemas/requestBodyEvent'
+          responseBody: '#/components/schemas/responseBodyEvent'
+          requestTrailers: '#/components/schemas/requestTrailersEvent'
+          responseTrailers: '#/components/schemas/responseTrailersEvent'
+    interceptDecision:
+      oneOf:
+      - $ref: '#/components/schemas/continueResponse'
+      - $ref: '#/components/schemas/immediateResponse'
+      discriminator:
+        propertyName: responseType
+        mapping:
+          continueResponse: '#/components/schemas/continueResponse'
+          immediateResponse: '#/components/schemas/immediateResponse'
