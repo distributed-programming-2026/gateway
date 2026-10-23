@@ -1,1 +1,4 @@
 /dist/
+
+# Generated from api/ by mise run generate.
+/api/client/

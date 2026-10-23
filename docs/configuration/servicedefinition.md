@@ -177,7 +177,7 @@ interceptors:
 
 Ссылка на отсутствующий интерцептор — ошибка при запуске. Специальная обработка `{name}` применяется в полях `pathParametersPattern` интерцепторов и заголовков; обычные regexp-поля остаются без преобразований. `pathParametersPattern` преобразуется из шаблона `{name}` в Go regexp при запуске: `{user_id}` → `(?P<user_id>[^/]+)`. `pathParameters` в запросе внешнему интерцептору содержит именованные группы первого совпадения с текущим преобразованным путём; если поле отсутствует или regexp не совпал, словарь пуст. Обычные неименованные группы в словарь не включаются. Имена и экранирование описаны в [общем контракте](README.md#regexp-и-параметры-пути). Query передаётся в `context.request.rawQuery` без потери повторяющихся значений, порядка и escaping.
 
-Контракты: [gRPC](../api/interceptorgrpc/interceptorgrpc.proto), [REST/OpenAPI](../api/interceptorrest/interceptorrest.oapi.yaml) и [семантика API](../api/README.md). Оба транспорта поддерживают одни и те же фазы и решения.
+Контракты: [gRPC](../../api/interceptorgrpc/interceptorgrpc.proto), [REST/OpenAPI](../../api/interceptorrest/interceptorrest.oapi.yaml) и [семантика API](../api/README.md). Оба транспорта поддерживают одни и те же фазы и решения.
 
 В каждой включённой фазе интерцепторы вызываются в порядке объявления. После каждого `continueResponse` gateway немедленно применяет mutations к текущему состоянию. Следующий интерцептор получает уже изменённые заголовки, method/path/query и тело, если соответствующая фаза передаёт его. Например, session устанавливает `X-Auth-Account` / `X-Auth-User`, а следующий authz получает эти данные без дополнительной загрузки сессии.
 

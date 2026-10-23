@@ -12,8 +12,8 @@
 
 ## Транспорты и совместимость
 
-- gRPC: `interceptorgrpc.Interceptor/Intercept`, [proto](interceptorgrpc/interceptorgrpc.proto).
-- REST: `POST /gateway/api/v1/intercept`, [OpenAPI](interceptorrest/interceptorrest.oapi.yaml). Запрос содержит `eventType`, `context` и `event`. Ответ HTTP `200` содержит `payload` с `responseType: continueResponse` или `immediateResponse`.
+- gRPC: `interceptorgrpc.Interceptor/Intercept`, [proto](../../api/interceptorgrpc/interceptorgrpc.proto).
+- REST: `POST /gateway/api/v1/intercept`, [OpenAPI](../../api/interceptorrest/interceptorrest.oapi.yaml). Запрос содержит `eventType`, `context` и `event`. Ответ HTTP `200` содержит `payload` с `responseType: continueResponse` или `immediateResponse`.
 
 Контракт заменяет исходный draft и несовместим с ним по сообщениям. Уже работающего API в этом проекте нет; имя RPC и endpoint сохранены. Старые protobuf field numbers зарезервированы. Перед публикацией API необходимо закрепить release version; REST не использует protobuf JSON напрямую.
 

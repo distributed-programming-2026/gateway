@@ -21,35 +21,55 @@ run = [ { task = "grpc-generate" }, { task = "oapi-generate" } ]
 
 [tasks.grpc-generate]
 run = """
-protoc --proto_path=docs/api \
+protoc --proto_path=api \
  --go_out=. --go_opt=module=github.com/distributed-programming-2026/gateway \
  --go-grpc_out=. --go-grpc_opt=module=github.com/distributed-programming-2026/gateway \
- docs/api/interceptorgrpc/interceptorgrpc.proto
+ api/interceptorgrpc/interceptorgrpc.proto
 """
 
 [tasks.oapi-generate]
-run = "oapi-codegen -package interceptorrest -generate types,client,spec -o api/client/interceptorrest/interceptorrest.gen.go docs/api/interceptorrest/interceptorrest.oapi.yaml"
+run = "mkdir -p api/client/interceptorrest && oapi-codegen -package interceptorrest -generate types,client,spec -o api/client/interceptorrest/interceptorrest.gen.go api/interceptorrest/interceptorrest.oapi.yaml"
 
 [tasks.modules]
+depends = ["generate"]
 run = "go mod tidy"
 
 [tasks.build]
-env = { GOOS = "linux", CGO_ENABLED = "0" }
+depends = ["generate"]
+env = { GOOS = "linux", GOARCH = '{{ env.GOARCH | default(value="amd64") }}', CGO_ENABLED = "0" }
 run = "go build -trimpath -o dist/gateway ./cmd"
 
 [tasks.test]
+depends = ["generate"]
 run = "go test ./cmd ./internal/gateway/..."
 
 [tasks.integration-tests]
+depends = ["generate"]
 run = "go test -race -count=1 ./internal/integration-tests"
 
 [tasks.lint]
+depends = ["generate"]
 run = "golangci-lint run"
 
 [tasks.coverage]
+depends = ["generate"]
 run = [
  "mkdir -p dist",
  "go test -race -count=1 -coverpkg=./internal/gateway/... -coverprofile=dist/coverage.out ./cmd ./internal/gateway/... ./internal/integration-tests",
  "go tool cover -func=dist/coverage.out",
  "go tool cover -html=dist/coverage.out -o dist/coverage.html",
 ]
+
+[tasks.image]
+description = "Build the Linux Docker image (IMAGE defaults to gateway:local)"
+depends = ["build"]
+run = 'docker build --platform "linux/${GOARCH:-amd64}" --tag "${IMAGE:-gateway:local}" .'
+
+[tasks.image-push]
+description = "Build and push the Docker image named by IMAGE"
+depends = ["image"]
+run = 'docker push "${IMAGE:?set IMAGE to the registry image and version}"'
+
+[tasks.release]
+description = "Check main and publish a version tag: mise run release -- v0.0.1"
+run = "./mise-tasks/release"
